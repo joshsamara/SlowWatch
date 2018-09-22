@@ -1,3 +1,10 @@
+/*
+
+Drawable for the watch ticks.
+
+Logic adapted from: https://gitlab.com/snaggen/ConnectIQ-ActiveAnalog/blob/master/source/AnalogView.mc
+
+*/
 using Toybox.WatchUi;
 using Toybox.Application;
 using Toybox.Graphics;
@@ -57,7 +64,5 @@ class WatchTicks extends WatchUi.Drawable {
 			// Actually draw the ticks
             dc.drawLine(x1, y1, x2, y2);
         }
-
     }
-
 }
