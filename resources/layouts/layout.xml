@@ -3,7 +3,6 @@
     	</drawable>
 	<drawable class="WatchTicks" id="Ticks"></drawable>
 	<drawable class="WatchHours" id="Hours"></drawable>
-	<label id="TimeLabel" x="center" y="center" font="Graphics.FONT_LARGE" justification="Graphics.TEXT_JUSTIFY_CENTER" color="Graphics.COLOR_BLUE" ></label>
 	
 
 </layout>
