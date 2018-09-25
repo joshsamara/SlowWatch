@@ -6,6 +6,8 @@ using Toybox.Application;
 using Toybox.Math;
 
 class SlowWatchView extends WatchUi.WatchFace {
+    // TODO CONFIGS
+    static const USE_12_HOUR = true;
     // Useful numeric constants
     static const HOURS_PER_DAY = 24;
     static const MIN_PER_HOUR = 60.0;
@@ -14,8 +16,8 @@ class SlowWatchView extends WatchUi.WatchFace {
     // Colors
     static const HAND_COLOR = Graphics.COLOR_BLUE;
     static const HOUR_COLOR = Graphics.COLOR_LT_GRAY;
-    static const SM_TICK_COLOR = Graphics.COLOR_LT_GRAY;
-    static const MD_TICK_COLOR = Graphics.COLOR_LT_GRAY;
+    static const SM_TICK_COLOR = Graphics.COLOR_DK_GRAY;
+    static const MD_TICK_COLOR = Graphics.COLOR_DK_GRAY;
     static const LG_TICK_COLOR = Graphics.COLOR_LT_GRAY;
     // Tick Constants
     static const TICKS_PER_HR = 4;
@@ -23,9 +25,9 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const ANGLE_PER_TICK = 2.0 * Math.PI / NUM_TICKS;
     // Tick visual constants
     static const SM_TICK_WIDTH = 1;
-    static const SM_TICK_LEN = 20;
+    static const SM_TICK_LEN = 16;
     static const LG_TICK_WIDTH = 2;
-    static const LG_TICK_LEN = 22;
+    static const LG_TICK_LEN = 16;
     // Hour Constants
     static const HOUR_FONT = Graphics.FONT_XTINY;
     static const HOUR_JUSTIFY = Graphics.TEXT_JUSTIFY_CENTER;
@@ -33,6 +35,8 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const ANGLE_PER_HOUR = 2.0 * Math.PI / HOURS_PER_DAY;
     static const HOUR_RAD_OFFSET = 7;
     static const TEXT_HEIGHT_OFFSET = Graphics.getFontHeight(HOUR_FONT) / 2;
+    // Hand constants
+    static const HAND_WIDTH = 2;
     // Other constants
     static const OUTTER_PADDING = 2;
     static const MAGIC_OFFSET = 6; // Min offset between different rings
@@ -46,7 +50,7 @@ class SlowWatchView extends WatchUi.WatchFace {
     // Load your resources here
     function onLayout(dc) {
         setLayout(Rez.Layouts.WatchFace(dc));
-        // Pre-set shared vars
+        // Pre-set global vars
         HEIGHT = dc.getHeight();
         WIDTH = dc.getWidth();
         RADIUS = WIDTH / 2;
@@ -122,24 +126,28 @@ class SlowWatchView extends WatchUi.WatchFace {
 
         var innerRad = RADIUS - OUTTER_PADDING;
         // Pre-init any vars used per hour
-        var theta, hourVal, x, xOffset, y, yOffset;
+        var theta, hourVal, hourStr, x, xOffset, y, yOffset;
         for (var i = 0; i < HOURS_PER_DAY; i++) {
             // The hour text to render starting at the rightmost (18)
-            hourVal = ((NUM_HOUR_OFFSET + i) % HOURS_PER_DAY).format("%02d");
+            if (USE_12_HOUR) {
+                hourVal = (NUM_HOUR_OFFSET + i) % 12;
+                if (hourVal == 0) { hourVal = 12; }
+            } else {
+                hourVal = (NUM_HOUR_OFFSET + i) % HOURS_PER_DAY;
+            }
+            hourStr = hourVal.format("%02d");
 
-            // Large texts just look better with an arbitrary offset
-            // if (textWidth > 10) { textWidth -= MAGIC_OFFSET; }
             // Angle of indivudal hours
             theta = i * ANGLE_PER_HOUR;
             // Offet of tick + Width of text
-            xOffset = (innerRad - TEXT_WIDTH/2 ) * Math.cos(theta);
+            xOffset = (innerRad - TEXT_WIDTH / 2 ) * Math.cos(theta);
             // Offset of height based on angle + Constant height offset
             yOffset = (innerRad - TEXT_HEIGHT_OFFSET) * Math.sin(theta) - TEXT_HEIGHT_OFFSET;
 
             // Actually draw the text
             x = RADIUS + xOffset;
             y = RADIUS + yOffset;
-            dc.drawText(x, y, HOUR_FONT, hourVal, HOUR_JUSTIFY);
+            dc.drawText(x, y, HOUR_FONT, hourStr, HOUR_JUSTIFY);
         }
     }
 
@@ -152,10 +160,11 @@ class SlowWatchView extends WatchUi.WatchFace {
         var theta = (hours / MIN_PER_DAY) * 2 * Math.PI;
         // Draw the watch hand
 
-        var x = RADIUS + RADIUS * Math.cos(theta);
-        var y = RADIUS + RADIUS * Math.sin(theta);
+        var outerRad = RADIUS - (TEXT_WIDTH + MAGIC_OFFSET) - OUTTER_PADDING;
+        var x = RADIUS + outerRad * Math.cos(theta);
+        var y = RADIUS + outerRad * Math.sin(theta);
 
-        dc.setPenWidth(2);
+        dc.setPenWidth(1);
         dc.setColor(HAND_COLOR, HAND_COLOR);
         dc.drawLine(RADIUS, RADIUS, x, y);
     }
