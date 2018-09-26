@@ -12,9 +12,9 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const HOURS_PER_DAY = 24;
     static const MIN_PER_HOUR = 60.0;
     static const MIN_PER_DAY = MIN_PER_HOUR * HOURS_PER_DAY;
-    static const NUM_HOUR_OFFSET = 18; 	// Furthest right is 18 on a clock
+    static const NUM_HOUR_OFFSET = 18;  // Furthest right is 18 on a clock
     // Colors
-    static const HAND_COLOR = Graphics.COLOR_BLUE;
+    static const HAND_COLOR = Graphics.COLOR_GREEN;
     static const HOUR_COLOR = Graphics.COLOR_LT_GRAY;
     static const SM_TICK_COLOR = Graphics.COLOR_DK_GRAY;
     static const MD_TICK_COLOR = Graphics.COLOR_DK_GRAY;
@@ -29,6 +29,7 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const LG_TICK_WIDTH = 2;
     static const LG_TICK_LEN = 16;
     // Hour Constants
+    static const HOUR_ANGLE_OFFSET = Math.PI / 2;  // Clock starts 1/4 around
     static const HOUR_FONT = Graphics.FONT_XTINY;
     static const HOUR_JUSTIFY = Graphics.TEXT_JUSTIFY_CENTER;
     // Hour visual constants
@@ -37,11 +38,27 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const TEXT_HEIGHT_OFFSET = Graphics.getFontHeight(HOUR_FONT) / 2;
     // Hand constants
     static const HAND_WIDTH = 2;
+    // Progress constants
+    static const PROGRESS_COLOR = Graphics.COLOR_BLUE;
+    static const PROGRESS_WIDTH = 6;
+    static const DEG_12_HR = 270;
+    static const RAD_CONVERSION = 180 / Math.PI;
     // Other constants
     static const OUTTER_PADDING = 2;
     static const MAGIC_OFFSET = 6; // Min offset between different rings
     // Globals to set on app startup
-    var HEIGHT, WIDTH, RADIUS, TEXT_WIDTH;
+    // HEIGHT - Screen Height
+    // WIDTH - Screen Width
+    // RADIUS - Full circle radius
+    // DRAW_RADIUS_0 - Outermost draw radius
+    // DRAW_RADIUS_1 - Second outermost draw radius
+    // DRAW_RADIUS_2 - Third outermost draw radius
+    // TEXT_WIDTH - Width of text on the screen
+    var HEIGHT, WIDTH, RADIUS, DRAW_RADIUS_0, DRAW_RADIUS_1, DRAW_RADIUS_2, TEXT_WIDTH;
+    // Globals set on every onUpdate
+    // CURRENT_MINS - Current min (hours * 60 + min)
+    // TIME_ANGLE - Angle of the hand on the face
+    var CURRENT_MINS, TIME_ANGLE;
 
     function initialize() {
         WatchFace.initialize();
@@ -67,10 +84,27 @@ class SlowWatchView extends WatchUi.WatchFace {
     function onUpdate(dc) {
         // Call the parent onUpdate function to redraw the layout
         View.onUpdate(dc);
+        setGlobals();
+        drawProgress(dc);
         drawCircle(dc);
         drawTicks(dc);
         drawHours(dc);
         drawHand(dc);
+    }
+
+    function setGlobals() {
+        var clockTime = System.getClockTime();
+        var hourWithOffset = clockTime.hour % HOURS_PER_DAY;
+        // Total minutes remaining
+        CURRENT_MINS = hourWithOffset * MIN_PER_HOUR + clockTime.min;
+        // Angle of the min hand
+        TIME_ANGLE = (CURRENT_MINS / MIN_PER_DAY) * 2 * Math.PI + (HOUR_ANGLE_OFFSET);
+        // Set drawing constants
+        DRAW_RADIUS_0 = RADIUS - OUTTER_PADDING;
+        // RADIUS_1 is the same with the text padding
+        DRAW_RADIUS_1 = DRAW_RADIUS_0 - (TEXT_WIDTH + MAGIC_OFFSET);
+        // Same as 1 with padding for the largest tick
+        DRAW_RADIUS_2 = DRAW_RADIUS_1 - LG_TICK_LEN;
     }
 
 
@@ -82,9 +116,19 @@ class SlowWatchView extends WatchUi.WatchFace {
         // dc.drawCircle(RADIUS, RADIUS, RADIUS - TEXT_WIDTH - MAGIC_OFFSET);
     }
 
+    function drawProgress(dc) {
+        // The arc angle works in the inverse of what our other angles expect
+        var arcAngle = - (TIME_ANGLE * RAD_CONVERSION);
+        dc.setColor(PROGRESS_COLOR, Graphics.COLOR_TRANSPARENT);
+
+        var largeInnerRad = DRAW_RADIUS_2 - PROGRESS_WIDTH / 2;
+        dc.setPenWidth(PROGRESS_WIDTH);
+        dc.drawArc(RADIUS, RADIUS, largeInnerRad, Graphics.ARC_CLOCKWISE, DEG_12_HR, arcAngle);
+    }
+
     function drawTicks(dc) {
         // Outer radius should be outside the numbers
-        var outerRad = RADIUS - (TEXT_WIDTH + MAGIC_OFFSET) - OUTTER_PADDING;
+        var outerRad = DRAW_RADIUS_1;
         var smallInnerRad = outerRad - SM_TICK_LEN;
         // Radius for full-sized ticks
         var largeInnerRad = outerRad - LG_TICK_LEN;
@@ -94,18 +138,18 @@ class SlowWatchView extends WatchUi.WatchFace {
             if (i % TICKS_PER_HR == 0) {
                 // Large Tick (Every hour)
                 innerRad = largeInnerRad;
-                dc.setColor(LG_TICK_COLOR, LG_TICK_COLOR);
+                dc.setColor(LG_TICK_COLOR, Graphics.COLOR_TRANSPARENT);
                 dc.setPenWidth(LG_TICK_WIDTH);
             } else if (i % (TICKS_PER_HR / 2) == 0) {
                 // Medium Tick (Every half hour)
                 innerRad = smallInnerRad;
                 dc.setPenWidth(SM_TICK_WIDTH);
-                dc.setColor(MD_TICK_COLOR, MD_TICK_COLOR);
+                dc.setColor(MD_TICK_COLOR, Graphics.COLOR_TRANSPARENT);
             } else {
                 // Small Tick (Every 15 min)
                 innerRad = smallInnerRad;
                 dc.setPenWidth(SM_TICK_WIDTH);
-                dc.setColor(SM_TICK_COLOR, SM_TICK_COLOR);
+                dc.setColor(SM_TICK_COLOR, Graphics.COLOR_TRANSPARENT);
             }
 
             // Angle of individual tick
@@ -122,9 +166,9 @@ class SlowWatchView extends WatchUi.WatchFace {
     }
 
     function drawHours(dc) {
-        dc.setColor(HOUR_COLOR, Graphics.COLOR_BLACK);
+        dc.setColor(HOUR_COLOR, Graphics.COLOR_TRANSPARENT);
 
-        var innerRad = RADIUS - OUTTER_PADDING;
+        var innerRad = DRAW_RADIUS_0;
         // Pre-init any vars used per hour
         var theta, hourVal, hourStr, x, xOffset, y, yOffset;
         for (var i = 0; i < HOURS_PER_DAY; i++) {
@@ -152,20 +196,13 @@ class SlowWatchView extends WatchUi.WatchFace {
     }
 
     function drawHand(dc) {
-        // Get the hours
-        var clockTime = System.getClockTime();
-        var hourWithOffset = (clockTime.hour - NUM_HOUR_OFFSET) % HOURS_PER_DAY;
-        var hours = hourWithOffset * MIN_PER_HOUR + clockTime.min;
-        // Set radius based on screen sizes and widths
-        var theta = (hours / MIN_PER_DAY) * 2 * Math.PI;
-        // Draw the watch hand
+        // Draw the watch hand up to the tick with a little extra
+        var outerRad = DRAW_RADIUS_1 + MAGIC_OFFSET;
+        var x = RADIUS + outerRad * Math.cos(TIME_ANGLE);
+        var y = RADIUS + outerRad * Math.sin(TIME_ANGLE);
 
-        var outerRad = RADIUS - (TEXT_WIDTH + MAGIC_OFFSET) - OUTTER_PADDING;
-        var x = RADIUS + outerRad * Math.cos(theta);
-        var y = RADIUS + outerRad * Math.sin(theta);
-
-        dc.setPenWidth(1);
-        dc.setColor(HAND_COLOR, HAND_COLOR);
+        dc.setPenWidth(HAND_WIDTH);
+        dc.setColor(HAND_COLOR, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(RADIUS, RADIUS, x, y);
     }
 
