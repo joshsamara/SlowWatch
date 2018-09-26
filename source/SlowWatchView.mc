@@ -25,9 +25,9 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const ANGLE_PER_TICK = 2.0 * Math.PI / NUM_TICKS;
     // Tick visual constants
     static const SM_TICK_WIDTH = 1;
-    static const SM_TICK_LEN = 16;
+    static const SM_TICK_LEN = 12;
     static const LG_TICK_WIDTH = 2;
-    static const LG_TICK_LEN = 16;
+    static const LG_TICK_LEN = 12;
     // Hour Constants
     static const HOUR_ANGLE_OFFSET = Math.PI / 2;  // Clock starts 1/4 around
     static const HOUR_FONT = Graphics.FONT_XTINY;
@@ -40,7 +40,7 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const HAND_WIDTH = 2;
     // Progress constants
     static const PROGRESS_COLOR = Graphics.COLOR_BLUE;
-    static const PROGRESS_WIDTH = 6;
+    static const PROGRESS_WIDTH = 8;
     static const DEG_12_HR = 270;
     static const RAD_CONVERSION = 180 / Math.PI;
     // Other constants
@@ -86,7 +86,6 @@ class SlowWatchView extends WatchUi.WatchFace {
         View.onUpdate(dc);
         setGlobals();
         drawProgress(dc);
-        drawCircle(dc);
         drawTicks(dc);
         drawHours(dc);
         drawHand(dc);
@@ -107,14 +106,6 @@ class SlowWatchView extends WatchUi.WatchFace {
         DRAW_RADIUS_2 = DRAW_RADIUS_1 - LG_TICK_LEN;
     }
 
-
-    function drawCircle(dc) {
-        // dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_RED);
-        // dc.drawCircle(RADIUS, RADIUS, RADIUS);
-        // dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_GREEN);
-        // dc.drawCircle(RADIUS, RADIUS, RADIUS-1);
-        // dc.drawCircle(RADIUS, RADIUS, RADIUS - TEXT_WIDTH - MAGIC_OFFSET);
-    }
 
     function drawProgress(dc) {
         // The arc angle works in the inverse of what our other angles expect
