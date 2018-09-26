@@ -41,7 +41,9 @@ class SlowWatchView extends WatchUi.WatchFace {
     // Progress constants
     static const PROGRESS_COLOR = Graphics.COLOR_BLUE;
     static const PROGRESS_WIDTH = 8;
-    static const DEG_12_HR = 270;
+    static const PROGRESS_START_HR = 12;
+    // TODO - calc this
+    static const PROGREES_START_ANGLE = 270;
     static const RAD_CONVERSION = 180 / Math.PI;
     // Other constants
     static const OUTTER_PADDING = 2;
@@ -114,7 +116,7 @@ class SlowWatchView extends WatchUi.WatchFace {
 
         var largeInnerRad = DRAW_RADIUS_2 - PROGRESS_WIDTH / 2;
         dc.setPenWidth(PROGRESS_WIDTH);
-        dc.drawArc(RADIUS, RADIUS, largeInnerRad, Graphics.ARC_CLOCKWISE, DEG_12_HR, arcAngle);
+        dc.drawArc(RADIUS, RADIUS, largeInnerRad, Graphics.ARC_CLOCKWISE, PROGREES_START_ANGLE, arcAngle);
     }
 
     function drawTicks(dc) {
