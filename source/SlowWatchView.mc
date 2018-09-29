@@ -14,8 +14,8 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const MIN_PER_DAY = MIN_PER_HOUR * HOURS_PER_DAY;
     static const NUM_HOUR_OFFSET = 18;  // Furthest right is 18 on a clock
     // Colors
-    static const HAND_COLOR = Graphics.COLOR_GREEN;
-    static const MIN_COLOR = Graphics.COLOR_DK_GREEN;
+    static const HAND_COLOR = Graphics.COLOR_RED;
+    static const MIN_COLOR = Graphics.COLOR_RED;
     static const HOUR_COLOR = Graphics.COLOR_LT_GRAY;
     static const SM_TICK_COLOR = Graphics.COLOR_DK_GRAY;
     static const MD_TICK_COLOR = Graphics.COLOR_DK_GRAY;
@@ -31,9 +31,9 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const ANGLE_PER_TICK = 2.0 * Math.PI / NUM_TICKS;
     // Tick visual constants
     static const SM_TICK_WIDTH = 1;
-    static const SM_TICK_LEN = 24;
+    static const SM_TICK_LEN = 32;
     static const LG_TICK_WIDTH = 2;
-    static const LG_TICK_LEN = 24;
+    static const LG_TICK_LEN = 32;
     // Hour Constants
     static const HOUR_ANGLE_OFFSET = Math.PI / 2;  // Clock starts 1/4 around
     static const HOUR_FONT = Graphics.FONT_XTINY;
@@ -179,6 +179,7 @@ class SlowWatchView extends WatchUi.WatchFace {
 
             if (minTick == i) {
                 // Note the min tick
+                dc.setPenWidth(LG_TICK_WIDTH);
                 dc.setColor(MIN_COLOR, Graphics.COLOR_TRANSPARENT);
             }
 
@@ -236,6 +237,7 @@ class SlowWatchView extends WatchUi.WatchFace {
         dc.setPenWidth(HAND_WIDTH);
         dc.setColor(HAND_COLOR, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(RADIUS, RADIUS, x, y);
+        dc.fillCircle(RADIUS, RADIUS, HAND_WIDTH * 2);
     }
 
     // Called when this View is removed from the screen. Save the
