@@ -20,6 +20,11 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const SM_TICK_COLOR = Graphics.COLOR_DK_GRAY;
     static const MD_TICK_COLOR = Graphics.COLOR_DK_GRAY;
     static const LG_TICK_COLOR = Graphics.COLOR_LT_GRAY;
+    static const PROGRESS_COLOR = Graphics.COLOR_BLUE;
+    static const PROGRESS_COLOR_0 = Graphics.COLOR_DK_BLUE;
+    static const PROGRESS_COLOR_1 = Graphics.COLOR_ORANGE;
+    static const PROGRESS_COLOR_2 = Graphics.COLOR_DK_GREEN;
+    static const PROGRESS_COLOR_3 = Graphics.COLOR_BLUE;
     // Tick Constants
     static const TICKS_PER_HR = 4;
     static const NUM_TICKS = HOURS_PER_DAY * TICKS_PER_HR;
@@ -40,7 +45,10 @@ class SlowWatchView extends WatchUi.WatchFace {
     // Hand constants
     static const HAND_WIDTH = 2;
     // Progress constants
-    static const PROGRESS_COLOR = Graphics.COLOR_BLUE;
+    static const PROGRESS_0_END = 6;  // First to end afted midnight
+    static const PROGRESS_1_END = 10;
+    static const PROGRESS_2_END = 18;
+    static const PROGRESS_3_END = 22;
     static const PROGRESS_WIDTH = 8;
     static const PROGRESS_START_HR = 12;
     // TODO - calc this
@@ -60,10 +68,11 @@ class SlowWatchView extends WatchUi.WatchFace {
     // TEXT_WIDTH - Width of text on the screen
     var HEIGHT, WIDTH, RADIUS, DRAW_RADIUS_0, DRAW_RADIUS_1, DRAW_RADIUS_2, TEXT_WIDTH;
     // Globals set on every onUpdate
+    // CURRENT_HOUR - Current hour
     // CURRENT_MINS - Current mins
-    // CURRENT_MINS - Current total min (hours * 60 + min)
+    // CURRENT_TOTAL_MINS - Current total min (hours * 60 + min)
     // TIME_ANGLE - Angle of the hand on the face
-    var CURRENT_MINS, CURRENT_TOTAL_MINS, TIME_ANGLE;
+    var CURRENT_HOUR, CURRENT_MINS, CURRENT_TOTAL_MINS, TIME_ANGLE;
 
     function initialize() {
         WatchFace.initialize();
@@ -98,11 +107,10 @@ class SlowWatchView extends WatchUi.WatchFace {
 
     function setGlobals() {
         var clockTime = System.getClockTime();
-        var hourWithOffset = clockTime.hour % HOURS_PER_DAY;
+        CURRENT_HOUR = clockTime.hour;
         CURRENT_MINS = clockTime.min;
-        // CURRENT_MINS = 55;
         // Total minutes remaining
-        CURRENT_TOTAL_MINS = hourWithOffset * MIN_PER_HOUR + clockTime.min;
+        CURRENT_TOTAL_MINS = CURRENT_HOUR * MIN_PER_HOUR + clockTime.min;
         // Angle of the min hand
         TIME_ANGLE = (CURRENT_TOTAL_MINS / MIN_PER_DAY) * 2 * Math.PI + (HOUR_ANGLE_OFFSET);
         // Set drawing constants
@@ -117,7 +125,23 @@ class SlowWatchView extends WatchUi.WatchFace {
     function drawProgress(dc) {
         // The arc angle works in the inverse of what our other angles expect
         var arcAngle = - (TIME_ANGLE * RAD_CONVERSION);
-        dc.setColor(PROGRESS_COLOR, Graphics.COLOR_TRANSPARENT);
+        // Set the color based on the current hour
+        var progressColor;
+        if (0 <= CURRENT_HOUR && CURRENT_HOUR < PROGRESS_0_END) {
+            progressColor = PROGRESS_COLOR_0;
+        } else if (PROGRESS_0_END <= CURRENT_HOUR && CURRENT_HOUR < PROGRESS_1_END) {
+            progressColor = PROGRESS_COLOR_1;
+        } else if (PROGRESS_1_END <= CURRENT_HOUR && CURRENT_HOUR < PROGRESS_2_END) {
+            progressColor = PROGRESS_COLOR_2;
+        } else if (PROGRESS_2_END <= CURRENT_HOUR && CURRENT_HOUR < PROGRESS_3_END) {
+            progressColor = PROGRESS_COLOR_3;
+        } else if (PROGRESS_3_END <= CURRENT_HOUR && CURRENT_HOUR < 24) {
+            // Handle case for wrapping around the clock
+            progressColor = PROGRESS_COLOR_0;
+        } else {
+            progressColor = PROGRESS_COLOR;
+        }
+        dc.setColor(progressColor, Graphics.COLOR_TRANSPARENT);
 
         var largeInnerRad = DRAW_RADIUS_0 - PROGRESS_WIDTH / 2;
         dc.setPenWidth(PROGRESS_WIDTH + 2);
