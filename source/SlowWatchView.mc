@@ -15,6 +15,7 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const NUM_HOUR_OFFSET = 18;  // Furthest right is 18 on a clock
     // Colors
     static const HAND_COLOR = Graphics.COLOR_GREEN;
+    static const MIN_COLOR = Graphics.COLOR_DK_GREEN;
     static const HOUR_COLOR = Graphics.COLOR_LT_GRAY;
     static const SM_TICK_COLOR = Graphics.COLOR_DK_GRAY;
     static const MD_TICK_COLOR = Graphics.COLOR_DK_GRAY;
@@ -46,6 +47,7 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const PROGREES_START_ANGLE = 270;
     static const RAD_CONVERSION = 180 / Math.PI;
     // Other constants
+    static const MIN_RENDER_OFFSET = 15;
     static const OUTTER_PADDING = 2;
     static const MAGIC_OFFSET = 6; // Min offset between different rings
     // Globals to set on app startup
@@ -58,9 +60,10 @@ class SlowWatchView extends WatchUi.WatchFace {
     // TEXT_WIDTH - Width of text on the screen
     var HEIGHT, WIDTH, RADIUS, DRAW_RADIUS_0, DRAW_RADIUS_1, DRAW_RADIUS_2, TEXT_WIDTH;
     // Globals set on every onUpdate
-    // CURRENT_MINS - Current min (hours * 60 + min)
+    // CURRENT_MINS - Current mins
+    // CURRENT_MINS - Current total min (hours * 60 + min)
     // TIME_ANGLE - Angle of the hand on the face
-    var CURRENT_MINS, TIME_ANGLE;
+    var CURRENT_MINS, CURRENT_TOTAL_MINS, TIME_ANGLE;
 
     function initialize() {
         WatchFace.initialize();
@@ -96,10 +99,12 @@ class SlowWatchView extends WatchUi.WatchFace {
     function setGlobals() {
         var clockTime = System.getClockTime();
         var hourWithOffset = clockTime.hour % HOURS_PER_DAY;
+        CURRENT_MINS = clockTime.min;
+        // CURRENT_MINS = 55;
         // Total minutes remaining
-        CURRENT_MINS = hourWithOffset * MIN_PER_HOUR + clockTime.min;
+        CURRENT_TOTAL_MINS = hourWithOffset * MIN_PER_HOUR + clockTime.min;
         // Angle of the min hand
-        TIME_ANGLE = (CURRENT_MINS / MIN_PER_DAY) * 2 * Math.PI + (HOUR_ANGLE_OFFSET);
+        TIME_ANGLE = (CURRENT_TOTAL_MINS / MIN_PER_DAY) * 2 * Math.PI + (HOUR_ANGLE_OFFSET);
         // Set drawing constants
         DRAW_RADIUS_0 = RADIUS;
         // RADIUS_1 is the same with the text padding
@@ -125,6 +130,9 @@ class SlowWatchView extends WatchUi.WatchFace {
         var smallInnerRad = outerRad - SM_TICK_LEN;
         // Radius for full-sized ticks
         var largeInnerRad = outerRad - LG_TICK_LEN;
+        // Calculate the tick of the current minute
+        var offsetMin = (CURRENT_MINS + MIN_RENDER_OFFSET) % 60;  // Ticks start at '15'min
+        var minTick = Math.ceil(offsetMin * NUM_TICKS / MIN_PER_HOUR);
         // Init vars for each tick
         var innerRad, theta, x1, x2, y1, y2;
         for (var i = 0; i < NUM_TICKS; i++) {
@@ -143,6 +151,11 @@ class SlowWatchView extends WatchUi.WatchFace {
                 innerRad = smallInnerRad;
                 dc.setPenWidth(SM_TICK_WIDTH);
                 dc.setColor(SM_TICK_COLOR, Graphics.COLOR_TRANSPARENT);
+            }
+
+            if (minTick == i) {
+                // Note the min tick
+                dc.setColor(MIN_COLOR, Graphics.COLOR_TRANSPARENT);
             }
 
             // Angle of individual tick
