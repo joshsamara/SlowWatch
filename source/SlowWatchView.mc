@@ -14,20 +14,19 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const MIN_PER_DAY = MIN_PER_HOUR * HOURS_PER_DAY;
     static const NUM_HOUR_OFFSET = 18;  // Furthest right is 18 on a clock
     // Colors
-    // TODO: Redo these names to COLOR_<USAGE>
-    static const HAND_COLOR = Graphics.COLOR_RED;
-    static const MIN_COLOR = Graphics.COLOR_RED;
-    static const HOUR_COLOR = Graphics.COLOR_DK_GRAY;
-    static const HOUR_ACTIVE_COLOR = Graphics.COLOR_LT_GRAY;
-    static const TICK_INACTIVE_COLOR = Graphics.COLOR_TRANSPARENT;
-    static const SM_TICK_COLOR = Graphics.COLOR_DK_GRAY;
-    static const LG_TICK_COLOR = Graphics.COLOR_LT_GRAY;
-    static const LG_TICK_INACTIVE_COLOR = Graphics.COLOR_DK_GRAY;
-    static const PROGRESS_COLOR = Graphics.COLOR_BLUE;
-    static const PROGRESS_COLOR_0 = Graphics.COLOR_DK_BLUE;
-    static const PROGRESS_COLOR_1 = Graphics.COLOR_ORANGE;
-    static const PROGRESS_COLOR_2 = Graphics.COLOR_DK_GREEN;
-    static const PROGRESS_COLOR_3 = Graphics.COLOR_BLUE;
+    static const COLOR_HAND = Graphics.COLOR_RED;
+    static const COLOR_MIN = Graphics.COLOR_RED;
+    static const COLOR_HOUR = Graphics.COLOR_DK_GRAY;
+    static const COLOR_HOUR_ACTIVE = Graphics.COLOR_LT_GRAY;
+    static const COLOR_TICK_INACTIVE = Graphics.COLOR_TRANSPARENT;
+    static const COLOR_SM_TICK = Graphics.COLOR_DK_GRAY;
+    static const COLOR_LG_TICK = Graphics.COLOR_LT_GRAY;
+    static const COLOR_LG_TICK_INACTIVE = Graphics.COLOR_DK_GRAY;
+    static const COLOR_PROGRESS = Graphics.COLOR_BLUE;
+    static const COLOR_PROGRESS_0 = Graphics.COLOR_DK_BLUE;
+    static const COLOR_PROGRESS_1 = Graphics.COLOR_ORANGE;
+    static const COLOR_PROGRESS_2 = Graphics.COLOR_DK_GREEN;
+    static const COLOR_PROGRESS_3 = Graphics.COLOR_BLUE;
     // Tick Constants
     static const TICKS_PER_HR = 4;
     static const NUM_TICKS = HOURS_PER_DAY * TICKS_PER_HR;
@@ -133,18 +132,18 @@ class SlowWatchView extends WatchUi.WatchFace {
         // Set the color based on the current hour
         var progressColor;
         if (0 <= CURRENT_HOUR && CURRENT_HOUR < PROGRESS_0_END) {
-            progressColor = PROGRESS_COLOR_0;
+            progressColor = COLOR_PROGRESS_0;
         } else if (PROGRESS_0_END <= CURRENT_HOUR && CURRENT_HOUR < PROGRESS_1_END) {
-            progressColor = PROGRESS_COLOR_1;
+            progressColor = COLOR_PROGRESS_1;
         } else if (PROGRESS_1_END <= CURRENT_HOUR && CURRENT_HOUR < PROGRESS_2_END) {
-            progressColor = PROGRESS_COLOR_2;
+            progressColor = COLOR_PROGRESS_2;
         } else if (PROGRESS_2_END <= CURRENT_HOUR && CURRENT_HOUR < PROGRESS_3_END) {
-            progressColor = PROGRESS_COLOR_3;
+            progressColor = COLOR_PROGRESS_3;
         } else if (PROGRESS_3_END <= CURRENT_HOUR && CURRENT_HOUR < 24) {
             // Handle case for wrapping around the clock
-            progressColor = PROGRESS_COLOR_0;
+            progressColor = COLOR_PROGRESS_0;
         } else {
-            progressColor = PROGRESS_COLOR;
+            progressColor = COLOR_PROGRESS;
         }
         dc.setColor(progressColor, Graphics.COLOR_TRANSPARENT);
 
@@ -187,14 +186,14 @@ class SlowWatchView extends WatchUi.WatchFace {
             // Set colors
             if (isMinTick) {
                 // Special-cased minute "hand" tick overrides
-                tickColor = MIN_COLOR;
+                tickColor = COLOR_MIN;
             } else if (isActive) {
                 // Active ticks are properly colored
-                tickColor = isLarge ? LG_TICK_COLOR : SM_TICK_COLOR;
+                tickColor = isLarge ? COLOR_LG_TICK : COLOR_SM_TICK;
             } else if (isMajor) {
-                tickColor = LG_TICK_INACTIVE_COLOR;
+                tickColor = COLOR_LG_TICK_INACTIVE;
             } else {
-                tickColor = TICK_INACTIVE_COLOR;
+                tickColor = COLOR_TICK_INACTIVE;
                 continue;
             }
             // Angle of individual tick
@@ -213,7 +212,7 @@ class SlowWatchView extends WatchUi.WatchFace {
     }
 
     function drawHours(dc) {
-        dc.setColor(HOUR_COLOR, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(COLOR_HOUR, Graphics.COLOR_TRANSPARENT);
 
         // Active range is the container between
         var offsetHour = CURRENT_HOUR;
@@ -264,7 +263,7 @@ class SlowWatchView extends WatchUi.WatchFace {
         var y = RADIUS + outerRad * Math.sin(TIME_ANGLE);
 
         dc.setPenWidth(HAND_WIDTH);
-        dc.setColor(HAND_COLOR, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(COLOR_HAND, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(RADIUS, RADIUS, x, y);
         dc.fillCircle(RADIUS, RADIUS, HAND_WIDTH * 2);
     }
