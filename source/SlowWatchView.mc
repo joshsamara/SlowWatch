@@ -6,18 +6,18 @@ using Toybox.Application;
 using Toybox.Math;
 
 class SlowWatchView extends WatchUi.WatchFace {
-    // TODO CONFIGS
+    // TODO: Make the following configs
     static const USE_12_HOUR = true;
-    // Useful numeric constants
+    // Numbers and pre-calculated constants
     static const HOURS_PER_DAY = 24;
-    static const MIN_PER_HOUR = 60.0;
+    static const MIN_PER_HOUR = 60;
     static const MIN_PER_DAY = MIN_PER_HOUR * HOURS_PER_DAY;
-    static const NUM_HOUR_OFFSET = 18;  // Furthest right is 18 on a clock
+    static const TAU = 2 * Math.PI;
     // Colors
     static const COLOR_HAND = Graphics.COLOR_RED;
     static const COLOR_MIN = Graphics.COLOR_RED;
     static const COLOR_HOUR = Graphics.COLOR_DK_GRAY;
-    static const COLOR_HOUR_ACTIVE = Graphics.COLOR_LT_GRAY;
+    static const COLOR_HOUR_CARDINAL = Graphics.COLOR_LT_GRAY;
     static const COLOR_TICK_INACTIVE = Graphics.COLOR_TRANSPARENT;
     static const COLOR_SM_TICK = Graphics.COLOR_DK_GRAY;
     static const COLOR_LG_TICK = Graphics.COLOR_LT_GRAY;
@@ -30,14 +30,13 @@ class SlowWatchView extends WatchUi.WatchFace {
     // Tick Constants
     static const TICKS_PER_HR = 4;
     static const NUM_TICKS = HOURS_PER_DAY * TICKS_PER_HR;
-    static const ANGLE_PER_TICK = 2.0 * Math.PI / NUM_TICKS;
+    static const ANGLE_PER_TICK = TAU / NUM_TICKS;
     // Tick visual constants
     static const SM_TICK_WIDTH = 1;
     static const SM_TICK_LEN = 56;
     static const LG_TICK_WIDTH = 2;
     static const LG_TICK_LEN = 56;
     // Hour Constants
-    static const HOUR_ANGLE_OFFSET = Math.PI / 2;  // Clock starts 1/4 around
     static const HOUR_FONT = Graphics.FONT_XTINY;
     static const HOUR_JUSTIFY = Graphics.TEXT_JUSTIFY_CENTER;
     // Hour visual constants
@@ -56,12 +55,10 @@ class SlowWatchView extends WatchUi.WatchFace {
     // TODO - calc this
     static const PROGREES_START_ANGLE = 270;
     static const RAD_CONVERSION = 180 / Math.PI;
-    // Other constants
-    static const MIN_RENDER_OFFSET = 15;
+    // Rendering constants
+    static const RENDER_OFFSET_ANGLE = Math.PI / 2;  // 0 is on the bottom of the map
     static const OUTTER_PADDING = 2;
     static const MAGIC_OFFSET = 6; // Min offset between different rings
-    // Rendering starts 1/4 a circle off
-    static const THETA_RENDER_OFFSET = Math.PI / 2;
     // Globals to set on app startup
     // HEIGHT - Screen Height
     // WIDTH - Screen Width
@@ -76,7 +73,10 @@ class SlowWatchView extends WatchUi.WatchFace {
     // CURRENT_MINS - Current mins
     // CURRENT_TOTAL_MINS - Current total min (hours * 60 + min)
     // TIME_ANGLE - Angle of the hand on the face
-    var CURRENT_HOUR, CURRENT_MINS, CURRENT_TOTAL_MINS, TIME_ANGLE;
+    // Active hours is a window of even hours near the current hour
+    // ACTIVE_HOUR_FLOOR - Closest even number (rounded down)
+    // ACTIVE_HOUR_CEIL - Closest even number (rounded up)
+    var CURRENT_HOUR, CURRENT_MINS, CURRENT_TOTAL_MINS, TIME_ANGLE, ACTIVE_HOUR_FLOOR, ACTIVE_HOUR_CEIL;
 
     function initialize() {
         WatchFace.initialize();
@@ -85,11 +85,6 @@ class SlowWatchView extends WatchUi.WatchFace {
     // Load your resources here
     function onLayout(dc) {
         setLayout(Rez.Layouts.WatchFace(dc));
-        // Pre-set global vars
-        HEIGHT = dc.getHeight();
-        WIDTH = dc.getWidth();
-        RADIUS = WIDTH / 2;
-        TEXT_WIDTH = dc.getTextWidthInPixels("23", HOUR_FONT);
     }
 
     // Called when this View is brought to the foreground. Restore
@@ -102,21 +97,30 @@ class SlowWatchView extends WatchUi.WatchFace {
     function onUpdate(dc) {
         // Call the parent onUpdate function to redraw the layout
         View.onUpdate(dc);
-        setGlobals();
+        setGlobals(dc);
         drawTicks(dc);
         drawProgress(dc);
         drawHours(dc);
         drawHand(dc);
     }
 
-    function setGlobals() {
+    function setGlobals(dc) {
+        // Pre-set global vars
+        HEIGHT = dc.getHeight();
+        WIDTH = dc.getWidth();
+        RADIUS = WIDTH / 2;
+        TEXT_WIDTH = dc.getTextWidthInPixels("23", HOUR_FONT);
+
         var clockTime = System.getClockTime();
         CURRENT_HOUR = clockTime.hour;
         CURRENT_MINS = clockTime.min;
         // Total minutes remaining
         CURRENT_TOTAL_MINS = CURRENT_HOUR * MIN_PER_HOUR + clockTime.min;
         // Angle of the min hand
-        TIME_ANGLE = (CURRENT_TOTAL_MINS / MIN_PER_DAY) * 2 * Math.PI + (HOUR_ANGLE_OFFSET);
+        TIME_ANGLE = (CURRENT_TOTAL_MINS / MIN_PER_DAY.toFloat()) * TAU + RENDER_OFFSET_ANGLE;
+        // Set active consts
+        ACTIVE_HOUR_FLOOR = CURRENT_HOUR & ~1;
+        ACTIVE_HOUR_CEIL = ACTIVE_HOUR_FLOOR + 2;
         // Set drawing constants
         DRAW_RADIUS_0 = RADIUS;
         // RADIUS_1 is the same with the text padding
@@ -145,11 +149,13 @@ class SlowWatchView extends WatchUi.WatchFace {
         } else {
             progressColor = COLOR_PROGRESS;
         }
-        dc.setColor(progressColor, Graphics.COLOR_TRANSPARENT);
 
         var largeInnerRad = DRAW_RADIUS_0 - PROGRESS_WIDTH / 2;
         dc.setPenWidth(PROGRESS_WIDTH + 2);
+        dc.setColor(progressColor, Graphics.COLOR_TRANSPARENT);
         dc.drawArc(RADIUS, RADIUS, largeInnerRad, Graphics.ARC_CLOCKWISE, PROGREES_START_ANGLE, arcAngle);
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawArc(RADIUS, RADIUS, largeInnerRad, Graphics.ARC_CLOCKWISE, arcAngle, PROGREES_START_ANGLE);
     }
 
     function drawTicks(dc) {
@@ -160,20 +166,18 @@ class SlowWatchView extends WatchUi.WatchFace {
         var largeInnerRad = outerRad - LG_TICK_LEN;
         // Calculate the tick of the current minute
         var minTick = Math.ceil(CURRENT_MINS * NUM_TICKS / MIN_PER_HOUR);
-        // Active range is the container between
-        // Find the range of the 2 nearest ticks to the current hour
-        // Floor to the closest even number
-        var activeFloorHour = CURRENT_HOUR & ~1;
-        var activeFloor = activeFloorHour * TICKS_PER_HR;
-        var activeCeil = (activeFloorHour + 2) * TICKS_PER_HR;
+        // Set active tick ranges
+        var activeFloor = ACTIVE_HOUR_FLOOR * TICKS_PER_HR;
+        var activeCeil = ACTIVE_HOUR_CEIL * TICKS_PER_HR;
         // Init vars for each tick
-        // TODO: Redo this so theta is offset by so the first tick renders at 0
-        var innerRad, theta, x1, x2, y1, y2, isMajor, isLarge, isActive, tickColor, tickWidth, isMinTick;
+        var innerRad, theta, x1, x2, y1, y2, isMajor, isLarge, isActive, tickColor, tickWidth, isMinTick, isCardinal;
         for (var i = 0; i < NUM_TICKS; i++) {
             // Large ticks every hour
             isLarge = (i % TICKS_PER_HR) == 0;
             // Major ticks every 2 hours
             isMajor = (i % (TICKS_PER_HR * 2)) == 0;
+            // Cardinal ticks are in each cardinal direction
+            isCardinal = (i % (TICKS_PER_HR * 6)) == 0;
             // Active ticks are near the hand
             isActive = (activeFloor <= i) && (i <= activeCeil);
             // Check if we're on the special minute hand
@@ -187,8 +191,9 @@ class SlowWatchView extends WatchUi.WatchFace {
             if (isMinTick) {
                 // Special-cased minute "hand" tick overrides
                 tickColor = COLOR_MIN;
-            } else if (isActive) {
-                // Active ticks are properly colored
+            // } else if (isCardinal) {
+            //     tickColor = COLOR_LG_TICK;
+            } else if (isActive || isCardinal) {
                 tickColor = isLarge ? COLOR_LG_TICK : COLOR_SM_TICK;
             } else if (isMajor) {
                 tickColor = COLOR_LG_TICK_INACTIVE;
@@ -197,7 +202,7 @@ class SlowWatchView extends WatchUi.WatchFace {
                 continue;
             }
             // Angle of individual tick
-            theta = THETA_RENDER_OFFSET + i * ANGLE_PER_TICK;
+            theta = RENDER_OFFSET_ANGLE + i * ANGLE_PER_TICK;
             // Round to avoid squigly ticks
             x1 = Math.round(RADIUS + outerRad * Math.cos(theta));
             y1 = Math.round(RADIUS + outerRad * Math.sin(theta));
@@ -212,28 +217,19 @@ class SlowWatchView extends WatchUi.WatchFace {
     }
 
     function drawHours(dc) {
-        dc.setColor(COLOR_HOUR, Graphics.COLOR_TRANSPARENT);
-
-        // Active range is the container between
-        var offsetHour = CURRENT_HOUR;
-        // Find the range of the 2 nearest ticks to the current hour
-        // Floor to the closest even number
-        var activeFloor = CURRENT_HOUR & ~1;
-        var activeCeil = CURRENT_HOUR + 2;
-
+        // Set the draw radius
         var innerRad = DRAW_RADIUS_1;
         // Pre-init any vars used per hour
-        var theta, hourVal, hourStr, x, xOffset, y, yOffset, isActive, isMajor;
+        var theta, hourVal, hourStr, x, xOffset, y, yOffset, isActive, isCardinal, hourColor;
         for (var i = 0; i < HOURS_PER_DAY; i+=2) {
-            isActive = (activeFloor <= i) && (i <= activeCeil);
-            isMajor = (i % 6) == 0;
+            isActive = (ACTIVE_HOUR_FLOOR <= i) && (i <= ACTIVE_HOUR_CEIL);
+            // "Cardinal" hours are the hours in every cardinal direction
+            isCardinal = (i % 6) == 0;
 
-            // Skip non-major/ non-active hours
-            if (!(isActive or isMajor)) { continue; }
-            // Only show even numbers
-            // TODO -- fix loop
-            // if (!(isActive or isMajor)) { continue; }
-            // The hour text to render starting at the rightmost (18)
+            // Skip non-cardinal/ non-active hours
+            if (!(isActive or isCardinal)) { continue; }
+
+            // Set a display valuea of the hour
             if (USE_12_HOUR) {
                 hourVal = i % 12;
                 if (hourVal == 0) { hourVal = 12; }
@@ -242,8 +238,9 @@ class SlowWatchView extends WatchUi.WatchFace {
             }
             hourStr = hourVal.format("%02d");
 
+            hourColor = isCardinal ? COLOR_HOUR_CARDINAL : COLOR_HOUR;
             // Angle of indivudal hours
-            theta = THETA_RENDER_OFFSET + i * ANGLE_PER_HOUR;
+            theta = RENDER_OFFSET_ANGLE + i * ANGLE_PER_HOUR;
             // Offet of tick + Width of text
             xOffset = (innerRad - TEXT_WIDTH / 2 ) * Math.cos(theta);
             // Offset of height based on angle + Constant height offset
@@ -252,6 +249,7 @@ class SlowWatchView extends WatchUi.WatchFace {
             // Actually draw the text
             x = RADIUS + xOffset;
             y = RADIUS + yOffset;
+            dc.setColor(hourColor, Graphics.COLOR_TRANSPARENT);
             dc.drawText(x, y, HOUR_FONT, hourStr, HOUR_JUSTIFY);
         }
     }
