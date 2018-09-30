@@ -14,12 +14,15 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const MIN_PER_DAY = MIN_PER_HOUR * HOURS_PER_DAY;
     static const NUM_HOUR_OFFSET = 18;  // Furthest right is 18 on a clock
     // Colors
+    // TODO: Redo these names to COLOR_<USAGE>
     static const HAND_COLOR = Graphics.COLOR_RED;
     static const MIN_COLOR = Graphics.COLOR_RED;
-    static const HOUR_COLOR = Graphics.COLOR_LT_GRAY;
+    static const HOUR_COLOR = Graphics.COLOR_DK_GRAY;
+    static const HOUR_ACTIVE_COLOR = Graphics.COLOR_LT_GRAY;
+    static const TICK_INACTIVE_COLOR = Graphics.COLOR_TRANSPARENT;
     static const SM_TICK_COLOR = Graphics.COLOR_DK_GRAY;
-    static const MD_TICK_COLOR = Graphics.COLOR_DK_GRAY;
     static const LG_TICK_COLOR = Graphics.COLOR_LT_GRAY;
+    static const LG_TICK_INACTIVE_COLOR = Graphics.COLOR_DK_GRAY;
     static const PROGRESS_COLOR = Graphics.COLOR_BLUE;
     static const PROGRESS_COLOR_0 = Graphics.COLOR_DK_BLUE;
     static const PROGRESS_COLOR_1 = Graphics.COLOR_ORANGE;
@@ -31,9 +34,9 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const ANGLE_PER_TICK = 2.0 * Math.PI / NUM_TICKS;
     // Tick visual constants
     static const SM_TICK_WIDTH = 1;
-    static const SM_TICK_LEN = 32;
+    static const SM_TICK_LEN = 56;
     static const LG_TICK_WIDTH = 2;
-    static const LG_TICK_LEN = 32;
+    static const LG_TICK_LEN = 56;
     // Hour Constants
     static const HOUR_ANGLE_OFFSET = Math.PI / 2;  // Clock starts 1/4 around
     static const HOUR_FONT = Graphics.FONT_XTINY;
@@ -58,6 +61,8 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const MIN_RENDER_OFFSET = 15;
     static const OUTTER_PADDING = 2;
     static const MAGIC_OFFSET = 6; // Min offset between different rings
+    // Rendering starts 1/4 a circle off
+    static const THETA_RENDER_OFFSET = Math.PI / 2;
     // Globals to set on app startup
     // HEIGHT - Screen Height
     // WIDTH - Screen Width
@@ -155,42 +160,53 @@ class SlowWatchView extends WatchUi.WatchFace {
         // Radius for full-sized ticks
         var largeInnerRad = outerRad - LG_TICK_LEN;
         // Calculate the tick of the current minute
-        var offsetMin = (CURRENT_MINS + MIN_RENDER_OFFSET) % 60;  // Ticks start at '15'min
-        var minTick = Math.ceil(offsetMin * NUM_TICKS / MIN_PER_HOUR);
+        var minTick = Math.ceil(CURRENT_MINS * NUM_TICKS / MIN_PER_HOUR);
+        // Active range is the container between
+        // Find the range of the 2 nearest ticks to the current hour
+        // Floor to the closest even number
+        var activeFloorHour = CURRENT_HOUR & ~1;
+        var activeFloor = activeFloorHour * TICKS_PER_HR;
+        var activeCeil = (activeFloorHour + 2) * TICKS_PER_HR;
         // Init vars for each tick
-        var innerRad, theta, x1, x2, y1, y2;
+        // TODO: Redo this so theta is offset by so the first tick renders at 0
+        var innerRad, theta, x1, x2, y1, y2, isMajor, isLarge, isActive, tickColor, tickWidth, isMinTick;
         for (var i = 0; i < NUM_TICKS; i++) {
-            if (i % TICKS_PER_HR == 0) {
-                // Large Tick (Every hour)
-                innerRad = largeInnerRad;
-                dc.setColor(LG_TICK_COLOR, Graphics.COLOR_TRANSPARENT);
-                dc.setPenWidth(LG_TICK_WIDTH);
-            } else if (i % (TICKS_PER_HR / 2) == 0) {
-                // Medium Tick (Every half hour)
-                innerRad = smallInnerRad;
-                dc.setPenWidth(SM_TICK_WIDTH);
-                dc.setColor(MD_TICK_COLOR, Graphics.COLOR_TRANSPARENT);
+            // Large ticks every hour
+            isLarge = (i % TICKS_PER_HR) == 0;
+            // Major ticks every 2 hours
+            isMajor = (i % (TICKS_PER_HR * 2)) == 0;
+            // Active ticks are near the hand
+            isActive = (activeFloor <= i) && (i <= activeCeil);
+            // Check if we're on the special minute hand
+            isMinTick = i == minTick;
+
+            // Inner draw radius
+            innerRad = isLarge ? largeInnerRad : smallInnerRad;
+            // Draw width
+            tickWidth = (isLarge or isMinTick) ? LG_TICK_WIDTH : SM_TICK_WIDTH;
+            // Set colors
+            if (isMinTick) {
+                // Special-cased minute "hand" tick overrides
+                tickColor = MIN_COLOR;
+            } else if (isActive) {
+                // Active ticks are properly colored
+                tickColor = isLarge ? LG_TICK_COLOR : SM_TICK_COLOR;
+            } else if (isMajor) {
+                tickColor = LG_TICK_INACTIVE_COLOR;
             } else {
-                // Small Tick (Every 15 min)
-                innerRad = smallInnerRad;
-                dc.setPenWidth(SM_TICK_WIDTH);
-                dc.setColor(SM_TICK_COLOR, Graphics.COLOR_TRANSPARENT);
+                tickColor = TICK_INACTIVE_COLOR;
+                continue;
             }
-
-            if (minTick == i) {
-                // Note the min tick
-                dc.setPenWidth(LG_TICK_WIDTH);
-                dc.setColor(MIN_COLOR, Graphics.COLOR_TRANSPARENT);
-            }
-
             // Angle of individual tick
-            theta = i * ANGLE_PER_TICK;
+            theta = THETA_RENDER_OFFSET + i * ANGLE_PER_TICK;
             // Round to avoid squigly ticks
             x1 = Math.round(RADIUS + outerRad * Math.cos(theta));
             y1 = Math.round(RADIUS + outerRad * Math.sin(theta));
             x2 = Math.round(RADIUS + innerRad * Math.cos(theta));
             y2 = Math.round(RADIUS + innerRad * Math.sin(theta));
             // Actually draw the ticks
+            dc.setColor(tickColor, Graphics.COLOR_TRANSPARENT);
+            dc.setPenWidth(tickWidth);
             dc.drawLine(x1, y1, x2, y2);
         }
 
@@ -199,23 +215,36 @@ class SlowWatchView extends WatchUi.WatchFace {
     function drawHours(dc) {
         dc.setColor(HOUR_COLOR, Graphics.COLOR_TRANSPARENT);
 
+        // Active range is the container between
+        var offsetHour = CURRENT_HOUR;
+        // Find the range of the 2 nearest ticks to the current hour
+        // Floor to the closest even number
+        var activeFloor = CURRENT_HOUR & ~1;
+        var activeCeil = CURRENT_HOUR + 2;
+
         var innerRad = DRAW_RADIUS_1;
         // Pre-init any vars used per hour
-        var theta, hourVal, hourStr, x, xOffset, y, yOffset;
-        for (var i = 0; i < HOURS_PER_DAY; i++) {
+        var theta, hourVal, hourStr, x, xOffset, y, yOffset, isActive, isMajor;
+        for (var i = 0; i < HOURS_PER_DAY; i+=2) {
+            isActive = (activeFloor <= i) && (i <= activeCeil);
+            isMajor = (i % 6) == 0;
+
+            // Skip non-major/ non-active hours
+            if (!(isActive or isMajor)) { continue; }
             // Only show even numbers
-            if (i % 2 == 1) { continue; }
+            // TODO -- fix loop
+            // if (!(isActive or isMajor)) { continue; }
             // The hour text to render starting at the rightmost (18)
             if (USE_12_HOUR) {
-                hourVal = (NUM_HOUR_OFFSET + i) % 12;
+                hourVal = i % 12;
                 if (hourVal == 0) { hourVal = 12; }
             } else {
-                hourVal = (NUM_HOUR_OFFSET + i) % HOURS_PER_DAY;
+                hourVal = i;
             }
             hourStr = hourVal.format("%02d");
 
             // Angle of indivudal hours
-            theta = i * ANGLE_PER_HOUR;
+            theta = THETA_RENDER_OFFSET + i * ANGLE_PER_HOUR;
             // Offet of tick + Width of text
             xOffset = (innerRad - TEXT_WIDTH / 2 ) * Math.cos(theta);
             // Offset of height based on angle + Constant height offset
