@@ -36,6 +36,7 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const SM_TICK_LEN = 56;
     static const LG_TICK_WIDTH = 2;
     static const LG_TICK_LEN = 56;
+    static const LG_TICK_LEN_INACTIVE = 32;
     // Hour Constants
     static const HOUR_FONT = Graphics.FONT_XTINY;
     static const HOUR_JUSTIFY = Graphics.TEXT_JUSTIFY_CENTER;
@@ -164,6 +165,7 @@ class SlowWatchView extends WatchUi.WatchFace {
         var smallInnerRad = outerRad - SM_TICK_LEN;
         // Radius for full-sized ticks
         var largeInnerRad = outerRad - LG_TICK_LEN;
+        var inactiveInnerRad = outerRad - LG_TICK_LEN_INACTIVE;
         // Calculate the tick of the current minute
         var minTick = Math.ceil(CURRENT_MINS * NUM_TICKS / MIN_PER_HOUR);
         // Set active tick ranges
@@ -184,18 +186,20 @@ class SlowWatchView extends WatchUi.WatchFace {
             isMinTick = i == minTick;
 
             // Inner draw radius
-            innerRad = isLarge ? largeInnerRad : smallInnerRad;
+            if (isActive || isCardinal) {
+                innerRad = isLarge ? largeInnerRad : smallInnerRad;
+            } else {
+                innerRad = inactiveInnerRad;
+            }
             // Draw width
             tickWidth = (isLarge or isMinTick) ? LG_TICK_WIDTH : SM_TICK_WIDTH;
             // Set colors
             if (isMinTick) {
                 // Special-cased minute "hand" tick overrides
                 tickColor = COLOR_MIN;
-            // } else if (isCardinal) {
-            //     tickColor = COLOR_LG_TICK;
-            } else if (isActive || isCardinal) {
+            } else if (isActive || isMajor) {
                 tickColor = isLarge ? COLOR_LG_TICK : COLOR_SM_TICK;
-            } else if (isMajor) {
+            } else if (isLarge) {
                 tickColor = COLOR_LG_TICK_INACTIVE;
             } else {
                 tickColor = COLOR_TICK_INACTIVE;
