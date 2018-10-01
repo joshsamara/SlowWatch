@@ -15,7 +15,7 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const TAU = 2 * Math.PI;
     // Colors
     static const COLOR_HAND = Graphics.COLOR_RED;
-    static const COLOR_CROSS = Graphics.COLOR_LT_GRAY;
+    static const COLOR_CROSS = Graphics.COLOR_DK_GRAY;
     static const COLOR_MIN = Graphics.COLOR_RED;
     static const COLOR_HOUR = Graphics.COLOR_DK_GRAY;
     static const COLOR_HOUR_CARDINAL = Graphics.COLOR_LT_GRAY;
@@ -104,7 +104,7 @@ class SlowWatchView extends WatchUi.WatchFace {
         View.onUpdate(dc);
         setGlobals(dc);
         drawTicks(dc);
-        drawCross(dc);
+        // drawCross(dc);
         drawProgress(dc);
         drawHours(dc);
         drawHand(dc);
@@ -226,7 +226,7 @@ class SlowWatchView extends WatchUi.WatchFace {
 
     function drawCross(dc) {
         dc.setPenWidth(CROSS_WIDTH);
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(COLOR_CROSS, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(RADIUS - CROSS_LEN, RADIUS, RADIUS + CROSS_LEN, RADIUS);
         dc.drawLine(RADIUS, RADIUS - CROSS_LEN, RADIUS, RADIUS + CROSS_LEN);
     }
