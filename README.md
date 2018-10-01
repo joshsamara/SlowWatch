@@ -15,7 +15,7 @@ Currently in progress. Code is funky right now.
 
 See the image below
 
-![Latest Image](https://github.com/joshsamara/SlowWatch/raw/master/imgs/latest.png)
+![Latest Image](https://github.com/joshsamara/SlowWatch/master/imgs/latest.png)
 
 ## 24 HR
 
