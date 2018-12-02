@@ -1,9 +1,10 @@
-using Toybox.WatchUi;
-using Toybox.Graphics;
-using Toybox.System;
-using Toybox.Lang;
 using Toybox.Application;
+using Toybox.ActivityMonitor;
+using Toybox.Graphics;
+using Toybox.Lang;
 using Toybox.Math;
+using Toybox.System;
+using Toybox.WatchUi;
 
 class SlowWatchView extends WatchUi.WatchFace {
     // TODO: Make the following configs
@@ -108,6 +109,8 @@ class SlowWatchView extends WatchUi.WatchFace {
         // drawCross(dc);
         drawProgress(dc);
         drawTime(dc);
+        drawHeartRate(dc);
+        drawSteps(dc);
         // drawHours(dc);
         // drawHand(dc);
     }
@@ -283,6 +286,35 @@ class SlowWatchView extends WatchUi.WatchFace {
         var y = RADIUS - offsets[1] / 1.75;
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x, y, TIME_FONT, timestring, HOUR_JUSTIFY);
+    }
+
+    function drawHeartRate(dc) {
+        var heart = ActivityMonitor.getHeartRateHistory(1, true).next();
+        if (heart == null) {
+            heart = "--";
+        } else {
+            heart = heart.heartRate;
+        }
+
+        var x = RADIUS;
+        var y = RADIUS * 0.33;
+        dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x, y, Graphics.FONT_MEDIUM, heart, HOUR_JUSTIFY);
+    }
+
+    function drawSteps(dc) {
+        var activityInfo = Toybox.ActivityMonitor.getInfo();
+        var current = activityInfo.steps;
+        var goal = activityInfo.stepGoal;
+        if (current == null) { current = "----"; }
+        if (goal == null) { goal = "----"; }
+
+        var stepStr = current + " / " + goal;
+
+        var x = RADIUS;
+        var y = RADIUS * 1.33;
+        dc.setColor(Graphics.COLOR_BLUE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x, y, Graphics.FONT_MEDIUM, stepStr, HOUR_JUSTIFY);
     }
 
     function drawHand(dc) {
