@@ -40,6 +40,7 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const LG_TICK_LEN_INACTIVE = 32;
     // Hour Constants
     static const HOUR_FONT = Graphics.FONT_XTINY;
+    static const TIME_FONT = Graphics.FONT_NUMBER_THAI_HOT;
     static const HOUR_JUSTIFY = Graphics.TEXT_JUSTIFY_CENTER;
     // Hour visual constants
     static const ANGLE_PER_HOUR = 2.0 * Math.PI / HOURS_PER_DAY;
@@ -52,7 +53,7 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const PROGRESS_1_END = 10;
     static const PROGRESS_2_END = 18;
     static const PROGRESS_3_END = 22;
-    static const PROGRESS_WIDTH = 8;
+    static const PROGRESS_WIDTH = 16;
     static const PROGRESS_START_HR = 12;
     // Cross constatnts
     static const CROSS_WIDTH = LG_TICK_WIDTH;
@@ -103,11 +104,12 @@ class SlowWatchView extends WatchUi.WatchFace {
         // Call the parent onUpdate function to redraw the layout
         View.onUpdate(dc);
         setGlobals(dc);
-        drawTicks(dc);
+        // drawTicks(dc);
         // drawCross(dc);
         drawProgress(dc);
-        drawHours(dc);
-        drawHand(dc);
+        drawTime(dc);
+        // drawHours(dc);
+        // drawHand(dc);
     }
 
     function setGlobals(dc) {
@@ -267,6 +269,20 @@ class SlowWatchView extends WatchUi.WatchFace {
             dc.setColor(hourColor, Graphics.COLOR_TRANSPARENT);
             dc.drawText(x, y, HOUR_FONT, hourStr, HOUR_JUSTIFY);
         }
+    }
+
+    function drawTime(dc) {
+        // TODO - 12 hr format
+        var hourStr = (CURRENT_HOUR % 12).format("%02d");
+        var minStr = CURRENT_MINS.format("%02d");
+        var timestring = hourStr + ":" + minStr;
+
+        var offsets = dc.getTextDimensions(timestring, TIME_FONT);
+
+        var x = RADIUS;
+        var y = RADIUS - offsets[1] / 1.75;
+        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x, y, TIME_FONT, timestring, HOUR_JUSTIFY);
     }
 
     function drawHand(dc) {
