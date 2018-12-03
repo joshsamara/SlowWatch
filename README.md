@@ -15,7 +15,7 @@ Currently in progress. Code is funky right now.
 
 See the image below
 
-![Latest Image](https://github.com/joshsamara/SlowWatch/master/imgs/latest.png)
+![Latest Image](https://raw.githubusercontent.com/joshsamara/SlowWatch/master/images/latest.png)
 
 ## "Progress Bar"
 
