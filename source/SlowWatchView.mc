@@ -29,6 +29,26 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const COLOR_PROGRESS_1 = Graphics.COLOR_ORANGE;
     static const COLOR_PROGRESS_2 = Graphics.COLOR_DK_GREEN;
     static const COLOR_PROGRESS_3 = Graphics.COLOR_BLUE;
+    static const COLOR_TIME = Graphics.COLOR_WHITE;
+    static const COLOR_HEART = Graphics.COLOR_RED;
+    static const COLOR_STEP = Graphics.COLOR_BLUE;
+    static const COLOR_STEP_COMPLETE = Graphics.COLOR_DK_BLUE;
+    // Progress constants
+    static const PROGRESS_0_END = 6;  // First to end afted midnight
+    static const PROGRESS_1_END = 10;
+    static const PROGRESS_2_END = 18;
+    static const PROGRESS_3_END = 22;
+    static const PROGRESS_WIDTH = 16;
+    static const PROGRESS_START_HR = 12;
+    // Time Constants
+    static const TIME_FONT = Graphics.FONT_NUMBER_THAI_HOT;
+    static const TIME_Y_FONT_MULTIPLIER = 1.75;
+    // Counter Constants
+    static const COUNTER_FONT = Graphics.FONT_MEDIUM;
+    static const HEART_DEFAULT = "--";
+    static const HEART_Y_MULTIPLIER = 0.33;
+    static const STEP_DEFAULT = "----";
+    static const STEP_Y_MULTIPLIER = 1.33;
     // Tick Constants
     static const TICKS_PER_HR = 4;
     static const NUM_TICKS = HOURS_PER_DAY * TICKS_PER_HR;
@@ -41,7 +61,6 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const LG_TICK_LEN_INACTIVE = 32;
     // Hour Constants
     static const HOUR_FONT = Graphics.FONT_XTINY;
-    static const TIME_FONT = Graphics.FONT_NUMBER_THAI_HOT;
     static const HOUR_JUSTIFY = Graphics.TEXT_JUSTIFY_CENTER;
     // Hour visual constants
     static const ANGLE_PER_HOUR = 2.0 * Math.PI / HOURS_PER_DAY;
@@ -49,18 +68,10 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const TEXT_HEIGHT_OFFSET = Graphics.getFontHeight(HOUR_FONT) / 2;
     // Hand constants
     static const HAND_WIDTH = 2;
-    // Progress constants
-    static const PROGRESS_0_END = 6;  // First to end afted midnight
-    static const PROGRESS_1_END = 10;
-    static const PROGRESS_2_END = 18;
-    static const PROGRESS_3_END = 22;
-    static const PROGRESS_WIDTH = 16;
-    static const PROGRESS_START_HR = 12;
     // Cross constatnts
     static const CROSS_WIDTH = LG_TICK_WIDTH;
     static const CROSS_LEN = 16;
-    // TODO - calc this
-    static const PROGREES_START_ANGLE = 270;
+    static const PROGREES_START_ANGLE = 270;  // TODO - calc this
     static const RAD_CONVERSION = 180 / Math.PI;
     // Rendering constants
     static const RENDER_OFFSET_ANGLE = Math.PI / 2;  // 0 is on the bottom of the map
@@ -105,14 +116,15 @@ class SlowWatchView extends WatchUi.WatchFace {
         // Call the parent onUpdate function to redraw the layout
         View.onUpdate(dc);
         setGlobals(dc);
-        // drawTicks(dc);
-        // drawCross(dc);
         drawProgress(dc);
         drawTime(dc);
         drawHeartRate(dc);
         drawSteps(dc);
+        // No Longer Used
         // drawHours(dc);
         // drawHand(dc);
+        // drawTicks(dc);
+        // drawCross(dc);
     }
 
     function setGlobals(dc) {
@@ -168,6 +180,67 @@ class SlowWatchView extends WatchUi.WatchFace {
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawArc(RADIUS, RADIUS, largeInnerRad, Graphics.ARC_CLOCKWISE, arcAngle, PROGREES_START_ANGLE);
     }
+
+    function drawTime(dc) {
+        // TODO - 12vs24 hr format
+        var hourStr = (CURRENT_HOUR % 12).format("%02d");
+        var minStr = CURRENT_MINS.format("%02d");
+        var timestring = hourStr + ":" + minStr;
+
+        var offsets = dc.getTextDimensions(timestring, TIME_FONT);
+
+        var x = RADIUS;
+        var y = RADIUS - offsets[1] / TIME_Y_FONT_MULTIPLIER;
+        dc.setColor(COLOR_TIME, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x, y, TIME_FONT, timestring, HOUR_JUSTIFY);
+    }
+
+    function drawHeartRate(dc) {
+        // Poll for the current info (1 latest tick)
+        var heart = ActivityMonitor.getHeartRateHistory(1, true).next();
+        // Default if we can't get the info
+        heart = (heart == null) ? HEART_DEFAULT : heart.heartRate;
+        // Draw
+        var x = RADIUS;
+        var y = RADIUS * HEART_Y_MULTIPLIER;
+        dc.setColor(COLOR_HEART, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x, y, COUNTER_FONT, heart, HOUR_JUSTIFY);
+    }
+
+    function drawSteps(dc) {
+        // Poll for the current info
+        var activityInfo = Toybox.ActivityMonitor.getInfo();
+        var current = activityInfo.steps;
+        var goal = activityInfo.stepGoal;
+        // Default if we can't get info
+        if (current == null) { current = STEP_DEFAULT; }
+        if (goal == null) { goal = STEP_DEFAULT; }
+        // Format as "CURRENT / GOAL"
+        var stepStr = current + " / " + goal;
+        // Use a differnt color if we're done
+        var color;
+        if (current <= goal) {
+            color = COLOR_STEP;
+        } else {
+            color = COLOR_STEP_COMPLETE;
+        }
+        // DRAW
+        var x = RADIUS;
+        var y = RADIUS * STEP_Y_MULTIPLIER;
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x, y, COUNTER_FONT, stepStr, HOUR_JUSTIFY);
+    }
+
+    /* =====================
+    *  =====================
+    *
+    *
+    *  DISABLED BELOW
+    *
+    *
+    *  =====================
+    *  =====================
+    */
 
     function drawTicks(dc) {
         // Outer radius should be outside the numbers
@@ -274,48 +347,6 @@ class SlowWatchView extends WatchUi.WatchFace {
         }
     }
 
-    function drawTime(dc) {
-        // TODO - 12 hr format
-        var hourStr = (CURRENT_HOUR % 12).format("%02d");
-        var minStr = CURRENT_MINS.format("%02d");
-        var timestring = hourStr + ":" + minStr;
-
-        var offsets = dc.getTextDimensions(timestring, TIME_FONT);
-
-        var x = RADIUS;
-        var y = RADIUS - offsets[1] / 1.75;
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x, y, TIME_FONT, timestring, HOUR_JUSTIFY);
-    }
-
-    function drawHeartRate(dc) {
-        var heart = ActivityMonitor.getHeartRateHistory(1, true).next();
-        if (heart == null) {
-            heart = "--";
-        } else {
-            heart = heart.heartRate;
-        }
-
-        var x = RADIUS;
-        var y = RADIUS * 0.33;
-        dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x, y, Graphics.FONT_MEDIUM, heart, HOUR_JUSTIFY);
-    }
-
-    function drawSteps(dc) {
-        var activityInfo = Toybox.ActivityMonitor.getInfo();
-        var current = activityInfo.steps;
-        var goal = activityInfo.stepGoal;
-        if (current == null) { current = "----"; }
-        if (goal == null) { goal = "----"; }
-
-        var stepStr = current + " / " + goal;
-
-        var x = RADIUS;
-        var y = RADIUS * 1.33;
-        dc.setColor(Graphics.COLOR_BLUE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x, y, Graphics.FONT_MEDIUM, stepStr, HOUR_JUSTIFY);
-    }
 
     function drawHand(dc) {
         // Draw the watch hand up to the tick with a little extra
