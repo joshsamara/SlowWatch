@@ -5,6 +5,8 @@ using Toybox.Lang;
 using Toybox.Math;
 using Toybox.System;
 using Toybox.WatchUi;
+using Toybox.Time;
+using Toybox.Time.Gregorian;
 
 class SlowWatchView extends WatchUi.WatchFace {
     // TODO: Make the following configs
@@ -53,6 +55,7 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const COLOR_HEART = Graphics.COLOR_RED;
     static const COLOR_STEP = Graphics.COLOR_BLUE;
     static const COLOR_STEP_COMPLETE = Graphics.COLOR_DK_BLUE;
+    static const COLOR_DATE = Graphics.COLOR_BLUE;
     // Time Constants
     static const TIME_FONT = Graphics.FONT_NUMBER_THAI_HOT;
     static const TIME_Y_FONT_MULTIPLIER = 1.75;
@@ -146,7 +149,9 @@ class SlowWatchView extends WatchUi.WatchFace {
         drawProgressTick(dc);
         drawTime(dc);
         drawHeartRate(dc);
-        drawSteps(dc);
+        // Only one of drawSteps and drawDate will work at a time
+        drawDate(dc);
+        // drawSteps(dc);
         // drawProgressIntervals(dc); Currently unused, unsure about this one
         // @deprecated - No Longer Used
         // This was to draw a bunch of ticks for a 24hour watch
@@ -297,6 +302,18 @@ class SlowWatchView extends WatchUi.WatchFace {
         var y = RADIUS * HEART_Y_MULTIPLIER;
         dc.setColor(COLOR_HEART, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x, y, COUNTER_FONT, heart, HOUR_JUSTIFY);
+    }
+
+    /*
+    * Draw the current date
+    */
+    function drawDate(dc) {
+        var today = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
+        var dateString = today.month + "/" + today.day;
+        var x = RADIUS;
+        var y = RADIUS * STEP_Y_MULTIPLIER;
+        dc.setColor(COLOR_DATE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x, y, COUNTER_FONT, dateString, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     /*
