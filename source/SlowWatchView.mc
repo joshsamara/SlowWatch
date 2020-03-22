@@ -20,11 +20,11 @@ class SlowWatchView extends WatchUi.WatchFace {
     * Broken into sections to indicate part of the day
     * 0 Too Early     12am-04am (Red)
     * 1 Also early    04am-08am (Orange)
-    * 2 Morning       08am-12pm (Green) 
+    * 2 Morning       08am-12pm (Green)
     * 3 Afternoon     12pm-04pm (Blue)
     * 4 Evening       04pm-08pm (Purple)
     * 5 Late          08pm-12am (Dark blue)
-    *  
+    *
     */
     // Progress colors
     static const COLOR_PROGRESS_0 = Graphics.COLOR_RED;
@@ -42,8 +42,12 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const PROGRESS_5_END = 24;  // 12a
     // Progress other draw constants
     static const PROGRESS_WIDTH = 16;
-    static const PROGRESS_TICK_WIDTH = 4;
+    static const PROGRESS_TICK_WIDTH = 8;
     static const COLOR_PROGRESS_TICK = Graphics.COLOR_YELLOW;
+    // Progress intervals
+    static const ANGLE_PER_INTERVAL = TAU / 6;
+    static const INTERVAL_WIDTH = 2;
+    static const COLOR_INTERVAL = Graphics.COLOR_DK_BLUE;
     // Informational colors
     static const COLOR_TIME = Graphics.COLOR_WHITE;
     static const COLOR_HEART = Graphics.COLOR_RED;
@@ -96,9 +100,9 @@ class SlowWatchView extends WatchUi.WatchFace {
     static const CROSS_LEN = 16;
     static const PROGREES_START_ANGLE = 270;  // TODO - calc this
     static const RAD_CONVERSION = 180 / Math.PI;
-    /* 
+    /*
     * Globals to set on app startup
-    * 
+    *
     * HEIGHT        - Screen Height
     * WIDTH         - Screen Width
     * RADIUS        - Full circle radius
@@ -111,15 +115,16 @@ class SlowWatchView extends WatchUi.WatchFace {
     /*
     * Globals set on every onUpdate
     *
-    * CURRENT_HOUR       - Current hour
-    * CURRENT_MINS       - Current mins
-    * CURRENT_TOTAL_MINS - Current total min (hours * 60 + min)
-    * TIME_ANGLE         - Angle of the hand on the face
+    * CURRENT_HOUR           - Current hour
+    * CURRENT_MINS           - Current mins
+    * CURRENT_TOTAL_MINS     - Current total min (hours * 60 + min)
+    * TIME_ANGLE             - Angle of the hand on the face
     * Active hours is a window of even hours near the current hour
-    * ACTIVE_HOUR_FLOOR   - Closest even number (rounded down)
-    * ACTIVE_HOUR_CEIL    - Closest even number (rounded up)
+    * ACTIVE_HOUR_FLOOR      - Closest even number (rounded down)
+    * ACTIVE_HOUR_CEIL       - Closest even number (rounded up)
+    * CURRENT_PROGRESS_COLOR - Current color of the days 'progress'
     */
-    var CURRENT_HOUR, CURRENT_MINS, CURRENT_TOTAL_MINS, TIME_ANGLE, ACTIVE_HOUR_FLOOR, ACTIVE_HOUR_CEIL;
+    var CURRENT_HOUR, CURRENT_MINS, CURRENT_TOTAL_MINS, TIME_ANGLE, ACTIVE_HOUR_FLOOR, ACTIVE_HOUR_CEIL, CURRENT_PROGRESS_COLOR;
 
     function initialize() {
         WatchFace.initialize();
@@ -142,6 +147,7 @@ class SlowWatchView extends WatchUi.WatchFace {
         drawTime(dc);
         drawHeartRate(dc);
         drawSteps(dc);
+        // drawProgressIntervals(dc); Currently unused, unsure about this one
         // @deprecated - No Longer Used
         // This was to draw a bunch of ticks for a 24hour watch
         // This is now done by a 'progress' meter
@@ -163,6 +169,7 @@ class SlowWatchView extends WatchUi.WatchFace {
 
         var clockTime = System.getClockTime();
         CURRENT_HOUR = clockTime.hour;
+        CURRENT_HOUR = 13;
         CURRENT_MINS = clockTime.min;
         // Total minutes remaining
         CURRENT_TOTAL_MINS = CURRENT_HOUR * MIN_PER_HOUR + clockTime.min;
@@ -177,8 +184,28 @@ class SlowWatchView extends WatchUi.WatchFace {
         DRAW_RADIUS_1 = DRAW_RADIUS_0 - (LG_TICK_LEN + MAGIC_OFFSET);
         // Same as 1 with padding for the largest tick
         DRAW_RADIUS_2 = DRAW_RADIUS_1 - (TEXT_WIDTH + MAGIC_OFFSET);
+        // Pre-calculate the current progress color
+        CURRENT_PROGRESS_COLOR = _getProgressColor(CURRENT_HOUR);
     }
 
+    function _getProgressColor(hour) {
+        if (0 <= hour && CURRENT_HOUR < PROGRESS_0_END) {
+            return COLOR_PROGRESS_0;
+        } else if (hour < PROGRESS_1_END) {
+            return COLOR_PROGRESS_1;
+        } else if (hour < PROGRESS_2_END) {
+            return COLOR_PROGRESS_2;
+        } else if (hour < PROGRESS_3_END) {
+            return COLOR_PROGRESS_3;
+        } else if (hour < PROGRESS_4_END) {
+            return COLOR_PROGRESS_4;
+        } else if (hour < PROGRESS_5_END) {
+            return COLOR_PROGRESS_5;
+        } else {
+           // Shouldn't get hit (but it'll be bright if it does)
+           return Graphics.COLOR_YELLOW;
+        }
+    }
 
 
     /*
@@ -187,51 +214,56 @@ class SlowWatchView extends WatchUi.WatchFace {
     function drawProgressBar(dc) {
         // The arc angle works in the inverse of what our other angles expect
         var arcAngle = - (TIME_ANGLE * RAD_CONVERSION);
-        // Set the color based on the current hour
-        // NOTE: Probably works as a switch statement
-        var progressColor;
-        if (0 <= CURRENT_HOUR && CURRENT_HOUR < PROGRESS_0_END) {
-      progressColor = COLOR_PROGRESS_0;
-        } else if (CURRENT_HOUR < PROGRESS_1_END) {
-          progressColor = COLOR_PROGRESS_1;
-        } else if (CURRENT_HOUR < PROGRESS_2_END) {
-          progressColor = COLOR_PROGRESS_2;
-      } else if (CURRENT_HOUR < PROGRESS_3_END) {
-          progressColor = COLOR_PROGRESS_3;
-      } else if (CURRENT_HOUR < PROGRESS_4_END) {
-        progressColor = COLOR_PROGRESS_4;
-      } else if (CURRENT_HOUR < PROGRESS_5_END) {
-          progressColor = COLOR_PROGRESS_5;
-        } else {
-          // Shouldn't get hit (but it'll be bright if it does)
-            progressColor = Graphics.COLOR_YELLOW;
-        }
-
         var largeInnerRad = DRAW_RADIUS_0 - PROGRESS_WIDTH / 2;
         dc.setPenWidth(PROGRESS_WIDTH + 2);
+        // Set the color based on the current hour
         // Draw 'filled' section
-        dc.setColor(progressColor, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(CURRENT_PROGRESS_COLOR, Graphics.COLOR_TRANSPARENT);
         dc.drawArc(RADIUS, RADIUS, largeInnerRad, Graphics.ARC_CLOCKWISE, PROGREES_START_ANGLE, arcAngle);
         // Draw remaining background
         // dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
         // dc.drawArc(RADIUS, RADIUS, largeInnerRad, Graphics.ARC_CLOCKWISE, arcAngle, PROGREES_START_ANGLE);
     }
-    
+
     /*
     * Draw a small progress indicator
-    */ 
+    */
     function drawProgressTick(dc) {
         var outerRad = DRAW_RADIUS_0;
         var innerRad = outerRad - PROGRESS_WIDTH;
-        
+
         var x0 = RADIUS + innerRad * Math.cos(TIME_ANGLE);
         var y0 = RADIUS + innerRad * Math.sin(TIME_ANGLE);
         var x = RADIUS + outerRad * Math.cos(TIME_ANGLE);
         var y = RADIUS + outerRad * Math.sin(TIME_ANGLE);
 
-        dc.setPenWidth(HAND_WIDTH + 2);
+        dc.setPenWidth(PROGRESS_TICK_WIDTH);
         dc.setColor(COLOR_PROGRESS_TICK, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(x0, y0, x, y);
+    }
+
+
+    function drawProgressIntervals(dc) {
+        var outerRad = DRAW_RADIUS_0;
+        var innerRad = outerRad - PROGRESS_WIDTH;
+        // Preset values used on each interval
+        dc.setColor(CURRENT_PROGRESS_COLOR, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(INTERVAL_WIDTH);
+
+        // Init vars for each interval
+        var theta, x1, x2, y1, y2;
+
+        for (var i = 0; i < 6; i++) {
+            // Angle of individual tick
+            theta = RENDER_OFFSET_ANGLE + i * ANGLE_PER_INTERVAL;
+            // Round to avoid squigly ticks
+            x1 = Math.round(RADIUS + outerRad * Math.cos(theta));
+            y1 = Math.round(RADIUS + outerRad * Math.sin(theta));
+            x2 = Math.round(RADIUS + innerRad * Math.cos(theta));
+            y2 = Math.round(RADIUS + innerRad * Math.sin(theta));
+            // Actually draw the ticks
+            dc.drawLine(x1, y1, x2, y2);
+        }
     }
 
     /*
@@ -253,7 +285,7 @@ class SlowWatchView extends WatchUi.WatchFace {
         dc.drawText(x, y, TIME_FONT, timestring, HOUR_JUSTIFY);
     }
 
-    /* 
+    /*
     * Draw the heart rate
     */
     function drawHeartRate(dc) {
