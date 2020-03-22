@@ -169,7 +169,6 @@ class SlowWatchView extends WatchUi.WatchFace {
 
         var clockTime = System.getClockTime();
         CURRENT_HOUR = clockTime.hour;
-        CURRENT_HOUR = 13;
         CURRENT_MINS = clockTime.min;
         // Total minutes remaining
         CURRENT_TOTAL_MINS = CURRENT_HOUR * MIN_PER_HOUR + clockTime.min;
