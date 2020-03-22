@@ -29,9 +29,9 @@ class SlowWatchView extends WatchUi.WatchFace {
     // Progress colors
     static const COLOR_PROGRESS_0 = Graphics.COLOR_RED;
     static const COLOR_PROGRESS_1 = Graphics.COLOR_ORANGE;
-    static const COLOR_PROGRESS_2 = Graphics.COLOR_DK_GREEN;
-    static const COLOR_PROGRESS_3 = Graphics.COLOR_BLUE;
-    static const COLOR_PROGRESS_4 = Graphics.COLOR_PURPLE;
+    static const COLOR_PROGRESS_2 = Graphics.COLOR_PURPLE;
+    static const COLOR_PROGRESS_3 = Graphics.COLOR_DK_GREEN;
+    static const COLOR_PROGRESS_4 = Graphics.COLOR_BLUE;
     static const COLOR_PROGRESS_5 = Graphics.COLOR_DK_BLUE;
     // Progress cutoffs
     static const PROGRESS_0_END = 4;  // 4a
@@ -239,7 +239,9 @@ class SlowWatchView extends WatchUi.WatchFace {
     */
     function drawTime(dc) {
         // TODO - 12vs24 hr format
-        var hourStr = (CURRENT_HOUR % 12).format("%02d");
+        var hourVal = CURRENT_HOUR % 12;
+        if (hourVal == 0) { hourVal = 12; }
+        var hourStr = hourVal.format("%02d");
         var minStr = CURRENT_MINS.format("%02d");
         var timestring = hourStr + ":" + minStr;
 
